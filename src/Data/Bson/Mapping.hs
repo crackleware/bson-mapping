@@ -46,8 +46,9 @@ module Data.Bson.Mapping
 import Prelude hiding (lookup)
 
 import Data.Bson
-import Data.Data               (Typeable)
-import Data.CompactString.UTF8 (append, cons)
+import Data.Data (Typeable)
+
+import qualified Data.Text as T
 
 import Language.Haskell.TH
 import Language.Haskell.TH.Lift ()
@@ -194,14 +195,14 @@ deriveBson type' = do
     genStmts [] _ = return ([], [])
     genStmts (f : fs) doc = do
       fvar <- newName "f"
-      let stmt = bindS (varP fvar) $ [| lookup (u (nameBase f)) $doc |]
+      let stmt = bindS (varP fvar) $ [| lookup (T.pack (nameBase f)) $doc |]
       (fields, stmts) <- genStmts fs doc
       return $ (return (f, VarE fvar) : fields, stmt : stmts)
 
 
-dataField, consField :: UString
-dataField = u "_data"
-consField = u "_cons"
+dataField, consField :: Label
+dataField = T.pack "_data"
+consField = T.pack "_cons"
 
 {-|
 
@@ -233,10 +234,10 @@ getConsDoc n = [| [consField =: nameBase n] |]
 
 -- | Simple function to select fields in a nested document.
 subDocument :: Label -> Document -> Document
-subDocument lab doc = [append lab (cons '.' l) := v | (l := v) <- doc]
+subDocument lab doc = [T.append lab (T.cons '.' l) := v | (l := v) <- doc]
 
 getLabel :: Name -> Q Exp
-getLabel n = [| u (nameBase n) |]
+getLabel n = [| T.pack (nameBase n) |]
 
 {-|
 
